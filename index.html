@@ -307,7 +307,7 @@
     <div class="field">
       <label>المبلغ المتوفر حالياً (ليرة تركية)</label>
       <input type="number" id="cashInHand" placeholder="أدخل المبلغ الموجود معك" min="0" />
-      <div class="hint">سيتم حسابه مع إجمالي المصاريف في ملف Excel</div>
+      <div class="hint">سيتم حساب "المربح" بناءً على هذا المبلغ</div>
     </div>
     <button class="btn btn-mog" id="confirmExportBtn">بدء التصدير</button>
   </div>
@@ -326,31 +326,20 @@
 
   const $ = (id)=>document.getElementById(id);
 
-  // Use localStorage for persistence
   function loadState(){
     try {
       const savedRate = localStorage.getItem('cm_rate');
       if(savedRate) state.rate = JSON.parse(savedRate);
-      
       const savedEntries = localStorage.getItem('cm_entries');
       if(savedEntries) state.entries = JSON.parse(savedEntries);
-    } catch(e) {
-      console.error('Error loading state:', e);
-    }
+    } catch(e) { console.error('Error loading state:', e); }
     render();
   }
 
-  function saveEntries(){
-    localStorage.setItem('cm_entries', JSON.stringify(state.entries));
-  }
-  
-  function saveRateToStorage(){
-    localStorage.setItem('cm_rate', JSON.stringify(state.rate));
-  }
+  function saveEntries(){ localStorage.setItem('cm_entries', JSON.stringify(state.entries)); }
+  function saveRateToStorage(){ localStorage.setItem('cm_rate', JSON.stringify(state.rate)); }
 
   function calcCost(units){ return (units / 10) * state.rate; }
-  
-  // Format numbers in English (Western Arabic numerals)
   function fmt(n){
     n = Math.round(n * 100) / 100;
     return n.toLocaleString('en-US'); 
@@ -358,10 +347,8 @@
 
   function render(){
     $('rateHint').textContent = `كل 10 وحدات = ${fmt(state.rate)} ليرة تركية`;
-
     const tUnits = parseFloat($('topupUnits').value) || 0;
     $('topupCost').textContent = fmt(calcCost(tUnits)) + ' ل.ت';
-
     const lOp = selected.line;
     if(lOp === 'moghrabi'){
       const p = parseFloat($('linePrice').value) || 0;
@@ -370,7 +357,6 @@
       const u = parseFloat($('lineUnits').value) || 0;
       $('lineCost').textContent = fmt(calcCost(u)) + ' ل.ت';
     }
-
     let totalCost = 0, syrTopup=0, mtnTopup=0, syrLine=0, mtnLine=0;
     state.entries.forEach(en=>{
       totalCost += en.cost;
@@ -382,18 +368,15 @@
         if(en.operator==='mtn') mtnLine += (en.units || 0);
       }
     });
-
     $('totalCost').innerHTML = `<span class="num-en">${fmt(totalCost)}</span> <small>ليرة تركية</small>`;
     $('syrTopup').innerHTML = `<span class="num-en">${fmt(syrTopup)}</span> <small>وحدة مضافة</small>`;
     $('mtnTopup').innerHTML = `<span class="num-en">${fmt(mtnTopup)}</span> <small>وحدة مضافة</small>`;
     $('syrLine').innerHTML = `<span class="num-en">${fmt(syrLine)}</span> <small>وحدة تفعيل</small>`;
     $('mtnLine').innerHTML = `<span class="num-en">${fmt(mtnLine)}</span> <small>وحدة تفعيل</small>`;
-
     const maxRef = Math.max(totalCost, 100);
     const pct = Math.min(100, (totalCost / maxRef) * 100);
     $('ring').style.setProperty('--pct', pct.toFixed(1));
     $('ringVal').innerHTML = `<span class="num-en">${fmt(totalCost)}</span><small>ل.ت</small>`;
-
     const list = $('entriesList');
     if(state.entries.length === 0){
       list.innerHTML = '<div class="empty">لا يوجد أي عمليات مسجلة بعد</div>';
@@ -443,7 +426,6 @@
 
   function nowStr(){
     const d = new Date();
-    // Using English numbers for date/time
     return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
   }
 
@@ -504,114 +486,112 @@
   function performExport(){
     const cash = parseFloat($('cashInHand').value) || 0;
     
-    // Detailed Ledger Rows
-    const rows = state.entries.map(en=>({
-      'التاريخ والوقت': en.date,
-      'النوع': en.kind==='topup' ? 'إضافة رصيد' : 'تفعيل خط',
-      'المشغل': OP_LABEL[en.operator],
-      'الكمية (وحدة)': en.units!=null ? en.units : '-',
-      'التكلفة (ليرة تركية)': en.cost
-    }));
-
-    // Calculate Statistics
-    let totalSpent=0, syrTopup=0, mtnTopup=0, syrLine=0, mtnLine=0, mogTotal=0, mogCount=0;
+    // 1. Summarize data
+    let totalSpent=0, syrTopupUnits=0, syrTopupCost=0, mtnTopupUnits=0, mtnTopupCost=0;
+    let syrLineUnits=0, syrLineCost=0, mtnLineUnits=0, mtnLineCost=0, mogTotal=0, mogCount=0;
+    
     state.entries.forEach(en=>{
       totalSpent += en.cost;
       if(en.kind==='topup'){
-        if(en.operator==='syriatel') syrTopup += en.units;
-        if(en.operator==='mtn') mtnTopup += en.units;
+        if(en.operator==='syriatel'){ syrTopupUnits += en.units; syrTopupCost += en.cost; }
+        if(en.operator==='mtn'){ mtnTopupUnits += en.units; mtnTopupCost += en.cost; }
       } else {
-        if(en.operator==='syriatel') syrLine += (en.units || 0);
-        if(en.operator==='mtn') mtnLine += (en.units || 0);
+        if(en.operator==='syriatel'){ syrLineUnits += (en.units || 0); syrLineCost += en.cost; }
+        if(en.operator==='mtn'){ mtnLineUnits += (en.units || 0); mtnLineCost += en.cost; }
         if(en.operator==='moghrabi'){ mogTotal += en.cost; mogCount++; }
       }
     });
 
-    const grandTotal = cash + totalSpent;
+    const profit = cash - totalSpent;
+    const profitText = profit >= 0 ? `مربح زائد: ${fmt(profit)}` : `عجز: ${fmt(Math.abs(profit))}`;
 
-    const summary = [
-      {'البيان':'المبلغ المتوفر (كاش)', 'القيمة': cash},
-      {'البيان':'إجمالي المصروفات المسجلة', 'القيمة': totalSpent},
-      {'البيان':'الإجمالي العام (كاش + مصروف)', 'القيمة': grandTotal},
-      {'---':'---', '---':'---'},
-      {'البيان':'رصيد سيريتيل المضاف (وحدة)', 'القيمة': syrTopup},
-      {'البيان':'رصيد MTN المضاف (وحدة)', 'القيمة': mtnTopup},
-      {'البيان':'رصيد سيريتيل للخطوط (وحدة)', 'القيمة': syrLine},
-      {'البيان':'رصيد MTN للخطوط (وحدة)', 'القيمة': mtnLine},
-      {'البيان':'عدد الخطوط المغربية', 'القيمة': mogCount},
-      {'البيان':'إجمالي سعر الخطوط المغربية (ل.ت)', 'القيمة': mogTotal},
-    ];
+    // 2. Prepare Tables (as per image)
+    const wb = XLSX.utils.book_new();
+    const sheetData = [];
 
-    try{
-      const wb = XLSX.utils.book_new();
-      
-      // Create Sheet 1: Ledger
-      const ws1 = XLSX.utils.json_to_sheet(rows);
-      // Set column widths
-      ws1['!cols'] = [{wch:25}, {wch:15}, {wch:15}, {wch:15}, {wch:20}];
-      
-      // Create Sheet 2: Summary
-      const ws2 = XLSX.utils.json_to_sheet(summary);
-      ws2['!cols'] = [{wch:35}, {wch:20}];
+    // Header: General Summary
+    sheetData.push(["الملخص العام"]);
+    sheetData.push(["إجمالي المال (كاش)", cash]);
+    sheetData.push(["السعر الإجمالي (مصاريف)", totalSpent]);
+    sheetData.push(["الفرق (المربح)", profitText]);
+    sheetData.push(["إجمالي الرصيد (الخطوط)", syrLineUnits + mtnLineUnits]);
+    sheetData.push(["(MTN) إجمالي الرصيد", mtnTopupUnits]);
+    sheetData.push(["إجمالي الرصيد (سيريتيل)", syrTopupUnits]);
+    sheetData.push([]);
 
-      XLSX.utils.book_append_sheet(wb, ws1, 'سجل العمليات');
-      XLSX.utils.book_append_sheet(wb, ws2, 'التقرير المالي');
-      
-      XLSX.writeFile(wb, `تقرير_المحاسبة_${new Date().toISOString().split('T')[0]}.xlsx`);
-      
-      $('exportOverlay').classList.remove('show');
-      $('cashInHand').value = '';
-    }catch(e){
-      console.error(e);
-      alert('حدث خطأ أثناء إنشاء ملف Excel');
-    }
+    // Header: Syriatel Accounts
+    sheetData.push(["حسابات سيريتيل"]);
+    sheetData.push(["الرقم", "الرصيد", "السعر (₺)", "آخر تحديث"]);
+    sheetData.push(["رصيد مضاف", syrTopupUnits, syrTopupCost, nowStr()]);
+    sheetData.push(["رصيد خطوط", syrLineUnits, syrLineCost, nowStr()]);
+    sheetData.push(["الإجمالي", syrTopupUnits + syrLineUnits, syrTopupCost + syrLineCost]);
+    sheetData.push([]);
+
+    // Header: MTN Accounts
+    sheetData.push(["حسابات MTN"]);
+    sheetData.push(["الرقم", "الرصيد", "السعر (₺)", "آخر تحديث"]);
+    sheetData.push(["رصيد مضاف", mtnTopupUnits, mtnTopupCost, nowStr()]);
+    sheetData.push(["رصيد خطوط", mtnLineUnits, mtnLineCost, nowStr()]);
+    sheetData.push(["الإجمالي", mtnTopupUnits + mtnLineUnits, mtnTopupCost + mtnLineCost]);
+    sheetData.push([]);
+
+    // Header: Lines
+    sheetData.push(["الخطوط"]);
+    sheetData.push(["اسم الخط", "المشغل", "الرصيد", "السعر لكل 10 وحدات", "السعر الكلي (₺)", "آخر تحديث"]);
+    state.entries.filter(e=>e.kind==='line').forEach(en=>{
+      sheetData.push([
+        en.operator==='moghrabi' ? 'خط مغربي' : 'تفعيل خط',
+        OP_LABEL[en.operator],
+        en.units || '-',
+        en.operator==='moghrabi' ? '-' : state.rate,
+        en.cost,
+        en.date
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    
+    // Basic Styling via Column Widths
+    ws['!cols'] = [{wch:25}, {wch:15}, {wch:15}, {wch:15}, {wch:15}, {wch:20}];
+    
+    XLSX.utils.book_append_sheet(wb, ws, 'تقرير المحاسبة');
+    XLSX.writeFile(wb, `تقرير_المحاسبة_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    $('exportOverlay').classList.remove('show');
+    $('cashInHand').value = '';
   }
 
-  // Event Listeners
+  // Events
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>switchTab(t.dataset.tab)));
   document.querySelectorAll('.op-btn').forEach(b=>b.addEventListener('click', ()=>selectOp(b.dataset.group, b.dataset.op)));
-  
   $('topupUnits').addEventListener('input', render);
   $('lineUnits').addEventListener('input', render);
   $('linePrice').addEventListener('input', render);
-  
   $('addTopupBtn').addEventListener('click', addTopup);
   $('addLineBtn').addEventListener('click', addLine);
   $('resetBtn').addEventListener('click', resetAll);
   $('exportBtn').addEventListener('click', exportExcel);
-  
   $('entriesList').addEventListener('click', (ev)=>{
     const del = ev.target.closest('.del');
     if(del) deleteEntry(Number(del.dataset.id));
   });
-
-  // Settings Modal Events
   $('gearBtn').addEventListener('click', ()=>{
     $('rateInput').value = state.rate;
     $('settingsOverlay').classList.add('show');
   });
-  
   $('closeSettings').addEventListener('click', ()=> $('settingsOverlay').classList.remove('show'));
-  
   $('settingsOverlay').addEventListener('click', (ev)=>{
     if(ev.target.id === 'settingsOverlay') $('settingsOverlay').classList.remove('show');
   });
-  
   $('saveRateBtn').addEventListener('click', ()=>{
     const v = parseFloat($('rateInput').value);
-    if(v && v > 0){ 
-      state.rate = v; 
-      saveRateToStorage(); 
-    }
+    if(v && v > 0){ state.rate = v; saveRateToStorage(); }
     $('settingsOverlay').classList.remove('show');
     render();
   });
-
-  // Export Modal Events
   $('closeExport').addEventListener('click', ()=> $('exportOverlay').classList.remove('show'));
   $('confirmExportBtn').addEventListener('click', performExport);
 
-  // Initialize
   selectOp('topup','syriatel');
   selectOp('line','syriatel');
   loadState();
