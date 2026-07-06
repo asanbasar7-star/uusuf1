@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>محاسب الرصيد والخطوط</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0E1220;
+    --panel:#161C2E;
+    --panel-2:#1D2439;
+    --ink:#F3EFE6;
+    --ink-dim:#9AA3BD;
+    --line:#2A3350;
+
+    --syr-1:#E8412C; --syr-2:#FF7A45;
+    --mtn-1:#FFC93C; --mtn-2:#FF8A00;
+    --mog-1:#17C3B2; --mog-2:#0FBF8F;
+    --danger:#E8412C;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 100% -10%, rgba(23,195,178,.10), transparent 60%),
+      radial-gradient(1000px 500px at -10% 0%, rgba(232,65,44,.10), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Tajawal', sans-serif;
+    min-height:100vh;
+    padding-bottom:110px;
+  }
+  h1,h2,h3,.num,.brand{font-family:'Cairo', sans-serif;}
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 0;}
+
+  /* header */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .brand{font-weight:900;font-size:22px;letter-spacing:.3px;}
+  .brand span{color:var(--mog-1);}
+  .gear{
+    width:40px;height:40px;border-radius:12px;background:var(--panel);
+    display:flex;align-items:center;justify-content:center;border:1px solid var(--line);
+    cursor:pointer;font-size:18px;
+  }
+
+  /* signature: signal arc */
+  .signature{
+    background:linear-gradient(160deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-bottom:16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .signature::after{
+    content:"";position:absolute;inset:0;
+    background:conic-gradient(from 220deg, var(--syr-1), var(--mtn-1), var(--mog-1), var(--syr-1));
+    opacity:.06;pointer-events:none;
+  }
+  .ring{
+    width:104px;height:104px;border-radius:50%;flex:none;position:relative;
+    background:conic-gradient(var(--mog-1) calc(var(--pct,0)*1%), #2A3350 0);
+    display:flex;align-items:center;justify-content:center;
+    transition:background 1s ease;
+  }
+  .ring::before{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--panel);}
+  .ring .val{position:relative;font-size:15px;font-weight:900;text-align:center;line-height:1.2;}
+  .ring .val small{display:block;font-family:'Tajawal';font-weight:500;font-size:10px;color:var(--ink-dim);}
+  .sig-text .label{color:var(--ink-dim);font-size:13px;margin-bottom:4px;}
+  .sig-text .amount{font-size:30px;font-weight:900;}
+  .sig-text .amount small{font-size:14px;color:var(--ink-dim);font-weight:600;margin-right:4px;}
+
+  /* stat row */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .stat{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;
+    border-inline-start:4px solid var(--line);
+  }
+  .stat.syr{border-inline-start-color:var(--syr-1);}
+  .stat.mtn{border-inline-start-color:var(--mtn-1);}
+  .stat .t{font-size:12px;color:var(--ink-dim);margin-bottom:6px;}
+  .stat .v{font-size:19px;font-weight:800;}
+  .stat .v small{font-size:11px;color:var(--ink-dim);font-weight:500;}
+
+  /* tabs */
+  .tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:14px;}
+  .tab{flex:1;text-align:center;padding:10px 0;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;color:var(--ink-dim);transition:.2s;}
+  .tab.active{background:linear-gradient(135deg,var(--mog-2),var(--mog-1));color:#08211c;}
+
+  /* panels */
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px;
+  }
+  .panel h3{margin:0 0 14px;font-size:16px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;color:var(--ink-dim);margin-bottom:7px;}
+  .op-select{display:flex;gap:8px;}
+  .op-btn{
+    flex:1;padding:12px 4px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel-2);
+    color:var(--ink);font-family:'Cairo';font-weight:700;font-size:13px;cursor:pointer;text-align:center;transition:.15s;
+  }
+  .op-btn.sel-syr{border-color:var(--syr-1);background:linear-gradient(135deg,rgba(232,65,44,.22),rgba(255,122,69,.10));}
+  .op-btn.sel-mtn{border-color:var(--mtn-1);background:linear-gradient(135deg,rgba(255,201,60,.22),rgba(255,138,0,.10));}
+  .op-btn.sel-mog{border-color:var(--mog-1);background:linear-gradient(135deg,rgba(23,195,178,.22),rgba(15,191,143,.10));}
+
+  input[type=number]{
+    width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid var(--line);
+    background:var(--panel-2);color:var(--ink);font-family:'Cairo';font-size:18px;font-weight:800;
+  }
+  input[type=number]:focus{outline:none;border-color:var(--mog-1);}
+  .hint{font-size:12px;color:var(--ink-dim);margin-top:6px;}
+  .computed{
+    margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--panel-2);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .computed .lbl{font-size:13px;color:var(--ink-dim);}
+  .computed .amt{font-size:22px;font-weight:900;}
+
+  .btn{
+    width:100%;padding:14px;border:none;border-radius:14px;font-family:'Cairo';font-weight:800;font-size:15px;
+    cursor:pointer;margin-top:6px;color:#fff;
+  }
+  .btn-syr{background:linear-gradient(135deg,var(--syr-1),var(--syr-2));}
+  .btn-mtn{background:linear-gradient(135deg,var(--mtn-2),var(--mtn-1));color:#241a00;}
+  .btn-mog{background:linear-gradient(135deg,var(--mog-2),var(--mog-1));color:#04241d;}
+
+  /* ledger */
+  .ledger h3{font-size:15px;margin:0 0 10px;color:var(--ink-dim);font-weight:700;}
+  .entry{
+    display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:12px 14px;margin-bottom:8px;
+  }
+  .entry .dot{width:10px;height:10px;border-radius:50%;flex:none;}
+  .dot.syr{background:var(--syr-1);} .dot.mtn{background:var(--mtn-1);} .dot.mog{background:var(--mog-1);}
+  .entry .info{flex:1;}
+  .entry .info .t1{font-size:14px;font-weight:700;}
+  .entry .info .t2{font-size:12px;color:var(--ink-dim);margin-top:2px;}
+  .entry .cost{font-family:'Cairo';font-weight:900;font-size:15px;}
+  .entry .del{
+    width:28px;height:28px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--ink-dim);cursor:pointer;font-size:14px;flex:none;
+  }
+  .empty{text-align:center;color:var(--ink-dim);font-size:13px;padding:26px 0;}
+
+  /* footer */
+  .footer{
+    position:fixed;bottom:0;left:0;right:0;background:rgba(14,18,32,.92);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+  .footer .row{max-width:520px;margin:0 auto;display:flex;gap:10px;}
+  .foot-btn{
+    flex:1;padding:13px;border-radius:14px;border:1.5px solid var(--line);background:var(--panel);
+    color:var(--ink);font-family:'Cairo';font-weight:800;font-size:13px;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;gap:6px;
+  }
+  .foot-btn.export{background:linear-gradient(135deg,var(--mog-2),var(--mog-1));color:#04241d;border:none;}
+  .foot-btn.reset{color:var(--danger);}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .overlay.show{display:flex;}
+  .sheet{
+    background:var(--panel);width:100%;max-width:400px;border-radius:20px;padding:25px;
+    border:1px solid var(--line);position:relative;
+  }
+  .sheet h3{margin-top:0;margin-bottom:20px;text-align:center;}
+  .sheet .close-x{position:absolute;left:20px;top:20px;color:var(--ink-dim);cursor:pointer;font-size:20px;}
+  
+  /* Number styling to ensure English numbers */
+  .num-en {
+    font-family: 'Cairo', sans-serif;
+    direction: ltr;
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">محاسب <span>الرصيد والخطوط</span></div>
+    <div class="gear" id="gearBtn">⚙️</div>
+  </div>
+
+  <div class="signature">
+    <div class="ring" id="ring"><div class="val" id="ringVal">0<small>ل.ت</small></div></div>
+    <div class="sig-text">
+      <div class="label">إجمالي المصروف الكلي</div>
+      <div class="amount" id="totalCost">0 <small>ليرة تركية</small></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat syr">
+      <div class="t">رصيد سيريتيل</div>
+      <div class="v" id="syrTopup">0 <small>وحدة مضافة</small></div>
+    </div>
+    <div class="stat mtn">
+      <div class="t">رصيد MTN</div>
+      <div class="v" id="mtnTopup">0 <small>وحدة مضافة</small></div>
+    </div>
+    <div class="stat syr">
+      <div class="t">خطوط سيريتيل</div>
+      <div class="v" id="syrLine">0 <small>وحدة تفعيل</small></div>
+    </div>
+    <div class="stat mtn">
+      <div class="t">خطوط MTN</div>
+      <div class="v" id="mtnLine">0 <small>وحدة تفعيل</small></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="topup">إضافة رصيد</div>
+    <div class="tab" data-tab="line">تفعيل خط</div>
+  </div>
+
+  <!-- TOPUP PANEL -->
+  <div class="panel" id="panel-topup">
+    <h3>إضافة رصيد سيريتيل / MTN</h3>
+    <div class="field">
+      <label>نوع الرصيد</label>
+      <div class="op-select">
+        <div class="op-btn sel-syr" data-op="syriatel" data-group="topup">سيريتيل</div>
+        <div class="op-btn" data-op="mtn" data-group="topup">MTN</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>كمية الرصيد</label>
+      <input type="number" id="topupUnits" placeholder="مثال: 50" min="0" />
+      <div class="hint" id="rateHint">كل 10 وحدات = 5 ليرة تركية</div>
+    </div>
+    <div class="computed">
+      <span class="lbl">التكلفة المحسوبة</span>
+      <span class="amt" id="topupCost">0 ل.ت</span>
+    </div>
+    <button class="btn btn-syr" id="addTopupBtn">إضافة الرصيد</button>
+  </div>
+
+  <!-- LINE PANEL -->
+  <div class="panel" id="panel-line" style="display:none;">
+    <h3>تفعيل خط جديد</h3>
+    <div class="field">
+      <label>نوع الخط</label>
+      <div class="op-select">
+        <div class="op-btn sel-syr" data-op="syriatel" data-group="line">سيريتيل</div>
+        <div class="op-btn" data-op="mtn" data-group="line">MTN</div>
+        <div class="op-btn" data-op="moghrabi" data-group="line">مغربي</div>
+      </div>
+    </div>
+
+    <div class="field" id="lineUnitsField">
+      <label>كمية الرصيد المستخدمة للتفعيل</label>
+      <input type="number" id="lineUnits" placeholder="مثال: 30" min="0" />
+    </div>
+    <div class="field" id="linePriceField" style="display:none;">
+      <label>السعر (ليرة تركية)</label>
+      <input type="number" id="linePrice" placeholder="مثال: 20" min="0" />
+    </div>
+
+    <div class="computed">
+      <span class="lbl">التكلفة</span>
+      <span class="amt" id="lineCost">0 ل.ت</span>
+    </div>
+    <button class="btn btn-syr" id="addLineBtn">تفعيل الخط</button>
+  </div>
+
+  <div class="ledger">
+    <h3>السجل</h3>
+    <div id="entriesList"></div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="row">
+    <button class="foot-btn reset" id="resetBtn">🗑️ تصفير الكل</button>
+    <button class="foot-btn export" id="exportBtn">⬇️ تحميل ملف Excel</button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="overlay" id="settingsOverlay">
+  <div class="sheet">
+    <div class="close-x" id="closeSettings">✕</div>
+    <h3>إعدادات السعر</h3>
+    <div class="field">
+      <label>سعر كل 10 وحدات رصيد (بالليرة التركية)</label>
+      <input type="number" id="rateInput" min="0" step="0.1" />
+    </div>
+    <button class="btn btn-mog" id="saveRateBtn">حفظ</button>
+  </div>
+</div>
+
+<!-- Export Modal (Cash in hand) -->
+<div class="overlay" id="exportOverlay">
+  <div class="sheet">
+    <div class="close-x" id="closeExport">✕</div>
+    <h3>تصدير البيانات</h3>
+    <div class="field">
+      <label>المبلغ المتوفر حالياً (ليرة تركية)</label>
+      <input type="number" id="cashInHand" placeholder="أدخل المبلغ الموجود معك" min="0" />
+      <div class="hint">سيتم حسابه مع إجمالي المصاريف في ملف Excel</div>
+    </div>
+    <button class="btn btn-mog" id="confirmExportBtn">بدء التصدير</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const OP_LABEL = {syriatel:'سيريتيل', mtn:'MTN', moghrabi:'مغربي'};
+  const OP_CLASS = {syriatel:'syr', mtn:'mtn', moghrabi:'mog'};
+  const BTN_CLASS = {syriatel:'btn-syr', mtn:'btn-mtn', moghrabi:'btn-mog'};
+
+  let state = { rate: 5, entries: [] };
+  let selected = { topup:'syriatel', line:'syriatel' };
+
+  const $ = (id)=>document.getElementById(id);
+
+  // Use localStorage for persistence
+  function loadState(){
+    try {
+      const savedRate = localStorage.getItem('cm_rate');
+      if(savedRate) state.rate = JSON.parse(savedRate);
+      
+      const savedEntries = localStorage.getItem('cm_entries');
+      if(savedEntries) state.entries = JSON.parse(savedEntries);
+    } catch(e) {
+      console.error('Error loading state:', e);
+    }
+    render();
+  }
+
+  function saveEntries(){
+    localStorage.setItem('cm_entries', JSON.stringify(state.entries));
+  }
+  
+  function saveRateToStorage(){
+    localStorage.setItem('cm_rate', JSON.stringify(state.rate));
+  }
+
+  function calcCost(units){ return (units / 10) * state.rate; }
+  
+  // Format numbers in English (Western Arabic numerals)
+  function fmt(n){
+    n = Math.round(n * 100) / 100;
+    return n.toLocaleString('en-US'); 
+  }
+
+  function render(){
+    $('rateHint').textContent = `كل 10 وحدات = ${fmt(state.rate)} ليرة تركية`;
+
+    const tUnits = parseFloat($('topupUnits').value) || 0;
+    $('topupCost').textContent = fmt(calcCost(tUnits)) + ' ل.ت';
+
+    const lOp = selected.line;
+    if(lOp === 'moghrabi'){
+      const p = parseFloat($('linePrice').value) || 0;
+      $('lineCost').textContent = fmt(p) + ' ل.ت';
+    } else {
+      const u = parseFloat($('lineUnits').value) || 0;
+      $('lineCost').textContent = fmt(calcCost(u)) + ' ل.ت';
+    }
+
+    let totalCost = 0, syrTopup=0, mtnTopup=0, syrLine=0, mtnLine=0;
+    state.entries.forEach(en=>{
+      totalCost += en.cost;
+      if(en.kind==='topup'){
+        if(en.operator==='syriatel') syrTopup += en.units;
+        if(en.operator==='mtn') mtnTopup += en.units;
+      } else {
+        if(en.operator==='syriatel') syrLine += (en.units || 0);
+        if(en.operator==='mtn') mtnLine += (en.units || 0);
+      }
+    });
+
+    $('totalCost').innerHTML = `<span class="num-en">${fmt(totalCost)}</span> <small>ليرة تركية</small>`;
+    $('syrTopup').innerHTML = `<span class="num-en">${fmt(syrTopup)}</span> <small>وحدة مضافة</small>`;
+    $('mtnTopup').innerHTML = `<span class="num-en">${fmt(mtnTopup)}</span> <small>وحدة مضافة</small>`;
+    $('syrLine').innerHTML = `<span class="num-en">${fmt(syrLine)}</span> <small>وحدة تفعيل</small>`;
+    $('mtnLine').innerHTML = `<span class="num-en">${fmt(mtnLine)}</span> <small>وحدة تفعيل</small>`;
+
+    const maxRef = Math.max(totalCost, 100);
+    const pct = Math.min(100, (totalCost / maxRef) * 100);
+    $('ring').style.setProperty('--pct', pct.toFixed(1));
+    $('ringVal').innerHTML = `<span class="num-en">${fmt(totalCost)}</span><small>ل.ت</small>`;
+
+    const list = $('entriesList');
+    if(state.entries.length === 0){
+      list.innerHTML = '<div class="empty">لا يوجد أي عمليات مسجلة بعد</div>';
+    } else {
+      list.innerHTML = state.entries.slice().reverse().map(en=>{
+        const kindLabel = en.kind==='topup' ? 'إضافة رصيد' : 'تفعيل خط';
+        const unitsText = en.units!=null ? `<span class="num-en">${fmt(en.units)}</span> وحدة · ` : '';
+        return `<div class="entry">
+          <div class="dot ${OP_CLASS[en.operator]}"></div>
+          <div class="info">
+            <div class="t1">${kindLabel} — ${OP_LABEL[en.operator]}</div>
+            <div class="t2">${unitsText}${en.date}</div>
+          </div>
+          <div class="cost"><span class="num-en">${fmt(en.cost)}</span> ل.ت</div>
+          <div class="del" data-id="${en.id}">✕</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  function switchTab(tab){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+    $('panel-topup').style.display = tab==='topup' ? '' : 'none';
+    $('panel-line').style.display = tab==='line' ? '' : 'none';
+  }
+
+  function selectOp(group, op){
+    selected[group] = op;
+    document.querySelectorAll(`.op-btn[data-group="${group}"]`).forEach(b=>{
+      b.classList.remove('sel-syr','sel-mtn','sel-mog');
+      if(b.dataset.op === op) b.classList.add('sel-'+OP_CLASS[op]);
+    });
+    if(group === 'topup'){
+      $('addTopupBtn').className = 'btn ' + BTN_CLASS[op];
+    } else {
+      $('addLineBtn').className = 'btn ' + BTN_CLASS[op];
+      if(op === 'moghrabi'){
+        $('lineUnitsField').style.display = 'none';
+        $('linePriceField').style.display = '';
+      } else {
+        $('lineUnitsField').style.display = '';
+        $('linePriceField').style.display = 'none';
+      }
+    }
+    render();
+  }
+
+  function nowStr(){
+    const d = new Date();
+    // Using English numbers for date/time
+    return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function addTopup(){
+    const op = selected.topup;
+    const units = parseFloat($('topupUnits').value);
+    if(!units || units <= 0){ alert('الرجاء إدخال كمية رصيد صحيحة'); return; }
+    state.entries.push({
+      id: Date.now(), kind:'topup', operator: op, units: units,
+      cost: calcCost(units), date: nowStr()
+    });
+    $('topupUnits').value = '';
+    saveEntries();
+    render();
+  }
+
+  function addLine(){
+    const op = selected.line;
+    let units = null, cost = 0;
+    if(op === 'moghrabi'){
+      const p = parseFloat($('linePrice').value);
+      if(!p || p <= 0){ alert('الرجاء إدخال السعر'); return; }
+      cost = p;
+    } else {
+      const u = parseFloat($('lineUnits').value);
+      if(!u || u <= 0){ alert('الرجاء إدخال كمية الرصيد'); return; }
+      units = u;
+      cost = calcCost(u);
+    }
+    state.entries.push({
+      id: Date.now(), kind:'line', operator: op, units: units,
+      cost: cost, date: nowStr()
+    });
+    $('lineUnits').value = '';
+    $('linePrice').value = '';
+    saveEntries();
+    render();
+  }
+
+  function deleteEntry(id){
+    state.entries = state.entries.filter(e=>e.id !== id);
+    saveEntries();
+    render();
+  }
+
+  function resetAll(){
+    if(!confirm('سيتم حذف جميع البيانات نهائياً. هل أنت متأكد؟')) return;
+    state.entries = [];
+    saveEntries();
+    render();
+  }
+
+  function exportExcel(){
+    if(state.entries.length === 0){ alert('لا يوجد بيانات لتصديرها'); return; }
+    $('exportOverlay').classList.add('show');
+  }
+
+  function performExport(){
+    const cash = parseFloat($('cashInHand').value) || 0;
+    
+    // Detailed Ledger Rows
+    const rows = state.entries.map(en=>({
+      'التاريخ والوقت': en.date,
+      'النوع': en.kind==='topup' ? 'إضافة رصيد' : 'تفعيل خط',
+      'المشغل': OP_LABEL[en.operator],
+      'الكمية (وحدة)': en.units!=null ? en.units : '-',
+      'التكلفة (ليرة تركية)': en.cost
+    }));
+
+    // Calculate Statistics
+    let totalSpent=0, syrTopup=0, mtnTopup=0, syrLine=0, mtnLine=0, mogTotal=0, mogCount=0;
+    state.entries.forEach(en=>{
+      totalSpent += en.cost;
+      if(en.kind==='topup'){
+        if(en.operator==='syriatel') syrTopup += en.units;
+        if(en.operator==='mtn') mtnTopup += en.units;
+      } else {
+        if(en.operator==='syriatel') syrLine += (en.units || 0);
+        if(en.operator==='mtn') mtnLine += (en.units || 0);
+        if(en.operator==='moghrabi'){ mogTotal += en.cost; mogCount++; }
+      }
+    });
+
+    const grandTotal = cash + totalSpent;
+
+    const summary = [
+      {'البيان':'المبلغ المتوفر (كاش)', 'القيمة': cash},
+      {'البيان':'إجمالي المصروفات المسجلة', 'القيمة': totalSpent},
+      {'البيان':'الإجمالي العام (كاش + مصروف)', 'القيمة': grandTotal},
+      {'---':'---', '---':'---'},
+      {'البيان':'رصيد سيريتيل المضاف (وحدة)', 'القيمة': syrTopup},
+      {'البيان':'رصيد MTN المضاف (وحدة)', 'القيمة': mtnTopup},
+      {'البيان':'رصيد سيريتيل للخطوط (وحدة)', 'القيمة': syrLine},
+      {'البيان':'رصيد MTN للخطوط (وحدة)', 'القيمة': mtnLine},
+      {'البيان':'عدد الخطوط المغربية', 'القيمة': mogCount},
+      {'البيان':'إجمالي سعر الخطوط المغربية (ل.ت)', 'القيمة': mogTotal},
+    ];
+
+    try{
+      const wb = XLSX.utils.book_new();
+      
+      // Create Sheet 1: Ledger
+      const ws1 = XLSX.utils.json_to_sheet(rows);
+      // Set column widths
+      ws1['!cols'] = [{wch:25}, {wch:15}, {wch:15}, {wch:15}, {wch:20}];
+      
+      // Create Sheet 2: Summary
+      const ws2 = XLSX.utils.json_to_sheet(summary);
+      ws2['!cols'] = [{wch:35}, {wch:20}];
+
+      XLSX.utils.book_append_sheet(wb, ws1, 'سجل العمليات');
+      XLSX.utils.book_append_sheet(wb, ws2, 'التقرير المالي');
+      
+      XLSX.writeFile(wb, `تقرير_المحاسبة_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      $('exportOverlay').classList.remove('show');
+      $('cashInHand').value = '';
+    }catch(e){
+      console.error(e);
+      alert('حدث خطأ أثناء إنشاء ملف Excel');
+    }
+  }
+
+  // Event Listeners
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>switchTab(t.dataset.tab)));
+  document.querySelectorAll('.op-btn').forEach(b=>b.addEventListener('click', ()=>selectOp(b.dataset.group, b.dataset.op)));
+  
+  $('topupUnits').addEventListener('input', render);
+  $('lineUnits').addEventListener('input', render);
+  $('linePrice').addEventListener('input', render);
+  
+  $('addTopupBtn').addEventListener('click', addTopup);
+  $('addLineBtn').addEventListener('click', addLine);
+  $('resetBtn').addEventListener('click', resetAll);
+  $('exportBtn').addEventListener('click', exportExcel);
+  
+  $('entriesList').addEventListener('click', (ev)=>{
+    const del = ev.target.closest('.del');
+    if(del) deleteEntry(Number(del.dataset.id));
+  });
+
+  // Settings Modal Events
+  $('gearBtn').addEventListener('click', ()=>{
+    $('rateInput').value = state.rate;
+    $('settingsOverlay').classList.add('show');
+  });
+  
+  $('closeSettings').addEventListener('click', ()=> $('settingsOverlay').classList.remove('show'));
+  
+  $('settingsOverlay').addEventListener('click', (ev)=>{
+    if(ev.target.id === 'settingsOverlay') $('settingsOverlay').classList.remove('show');
+  });
+  
+  $('saveRateBtn').addEventListener('click', ()=>{
+    const v = parseFloat($('rateInput').value);
+    if(v && v > 0){ 
+      state.rate = v; 
+      saveRateToStorage(); 
+    }
+    $('settingsOverlay').classList.remove('show');
+    render();
+  });
+
+  // Export Modal Events
+  $('closeExport').addEventListener('click', ()=> $('exportOverlay').classList.remove('show'));
+  $('confirmExportBtn').addEventListener('click', performExport);
+
+  // Initialize
+  selectOp('topup','syriatel');
+  selectOp('line','syriatel');
+  loadState();
+})();
+</script>
+</body>
+</html>
