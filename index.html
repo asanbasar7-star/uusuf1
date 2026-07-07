@@ -53,7 +53,7 @@
   .op-btn{flex:1;padding:12px 4px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel-2);color:var(--ink);font-family:'Cairo';font-weight:700;font-size:13px;cursor:pointer;text-align:center;transition:.15s;}
   .op-btn.sel-syr{border-color:var(--syr-1);background:linear-gradient(135deg,rgba(232,65,44,.22),rgba(255,122,69,.10));}
   .op-btn.sel-mtn{border-color:var(--mtn-1);background:linear-gradient(135deg,rgba(255,201,60,.22),rgba(255,138,0,.10));}
-  .op-btn.sel-mog{border-color:var(--mog-1);background:linear-gradient(135deg,rgba(23,195,178,.22),rgba(15,191,143,.10));}
+  .op-btn.sel-mog{border-color:var(--mog-1);background:linear-gradient(135deg,rgba(232,65,44,.22),rgba(255,122,69,.10));} /* Fixed color for moghrabi btn */
   input[type=number]{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel-2);color:var(--ink);font-family:'Cairo';font-size:18px;font-weight:800;}
   input[type=number]:focus{outline:none;border-color:var(--mog-1);}
   .hint{font-size:12px;color:var(--ink-dim);margin-top:6px;}
@@ -88,18 +88,19 @@
 
   /* DETAILED AUDIT REPORT (For Image Export) */
   #reportContainer {
-    position: fixed; left: -9999px; top: 0; width: 800px; background: #fff; color: #000; padding: 50px; direction: rtl; font-family: 'Cairo', sans-serif;
+    position: fixed; left: -9999px; top: 0; width: 850px; background: #fff; color: #000; padding: 60px; direction: rtl; font-family: 'Cairo', sans-serif;
   }
-  .audit-card { border: 4px solid #000; padding: 30px; margin-bottom: 30px; position: relative; }
-  .audit-card::before { content: attr(data-title); position: absolute; top: -20px; right: 20px; background: #fff; padding: 0 15px; font-size: 18pt; font-weight: 900; }
-  .audit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 18pt; font-weight: 700; border-bottom: 1px dashed #ccc; padding-bottom: 8px; }
-  .audit-row.main { font-size: 22pt; font-weight: 900; border-bottom: 3px solid #000; margin-top: 10px; }
-  .audit-row .formula { font-size: 14pt; color: #666; font-weight: 400; }
-  .audit-total-box { background: #f9f9f9; border: 4px solid #000; padding: 25px; margin-top: 40px; }
-  .audit-profit { font-size: 26pt; font-weight: 900; text-align: center; color: #d32f2f; margin-top: 15px; border-top: 4px double #000; padding-top: 15px; }
-  .audit-header { text-align: center; margin-bottom: 40px; border-bottom: 5px solid #000; padding-bottom: 20px; }
-  .audit-header h1 { font-size: 34pt; margin: 0; font-weight: 900; }
-  .audit-header p { font-size: 16pt; color: #444; margin: 10px 0 0; }
+  .audit-card { border: 6px solid #000; padding: 35px; margin-bottom: 40px; position: relative; }
+  .audit-card::before { content: attr(data-title); position: absolute; top: -25px; right: 25px; background: #fff; padding: 0 20px; font-size: 22pt; font-weight: 900; }
+  .audit-section-title { font-size: 20pt; font-weight: 900; margin-top: 25px; margin-bottom: 15px; border-bottom: 3px solid #000; display: inline-block; padding-left: 10px; }
+  .audit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 20pt; font-weight: 800; border-bottom: 2px dashed #bbb; padding-bottom: 10px; }
+  .audit-row.main { font-size: 24pt; font-weight: 900; border-bottom: 4px solid #000; margin-top: 15px; background: #f2f2f2; padding: 10px; }
+  .audit-row .formula { font-size: 16pt; color: #444; font-weight: 600; font-style: italic; }
+  .audit-total-box { background: #f9f9f9; border: 6px solid #000; padding: 35px; margin-top: 50px; }
+  .audit-profit { font-size: 32pt; font-weight: 950; text-align: center; color: #000; margin-top: 20px; border-top: 6px double #000; padding-top: 20px; }
+  .audit-header { text-align: center; margin-bottom: 50px; border-bottom: 6px solid #000; padding-bottom: 25px; }
+  .audit-header h1 { font-size: 42pt; margin: 0; font-weight: 950; }
+  .audit-header p { font-size: 18pt; color: #000; margin: 15px 0 0; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -155,7 +156,7 @@
 </div>
 
 <div class="overlay" id="exportOverlay">
-  <div class="sheet"><div class="close-x" id="closeExport">✕</div><h3>استخراج جرد مالي</h3><div class="field"><label>المبلغ المتوفر حالياً (كاش)</label><input type="number" id="cashInHand" placeholder="أدخل الكاش الموجود معك" min="0" /><div class="hint">سيتم توليد جرد مفصل بالمعادلات الحسابية</div></div><button class="btn btn-mog" id="confirmExportBtn">توليد الجرد</button></div>
+  <div class="sheet"><div class="close-x" id="closeExport">✕</div><h3>استخراج جرد مالي مفصل</h3><div class="field"><label>المبلغ المتوفر حالياً (كاش)</label><input type="number" id="cashInHand" placeholder="أدخل الكاش الموجود معك" min="0" /><div class="hint">سيتم توليد جرد مفصل جداً بخط سميك وواضح</div></div><button class="btn btn-mog" id="confirmExportBtn">توليد الجرد</button></div>
 </div>
 
 <div id="reportContainer"></div>
@@ -228,49 +229,75 @@
 
   async function generateImage(){
     const cash = parseFloat($('cashInHand').value) || 0;
-    let syrUnits=0, syrCost=0, mtnUnits=0, mtnCost=0, mogCount=0, mogCost=0;
+    let syrTUnits=0, syrTCost=0, syrLUnits=0, syrLCost=0, syrLCount=0;
+    let mtnTUnits=0, mtnTCost=0, mtnLUnits=0, mtnLCost=0, mtnLCount=0;
+    let mogCount=0, mogCost=0;
+
     state.entries.forEach(en=>{
-      if(en.operator==='syriatel'){ syrUnits += (en.units || 0); syrCost += en.cost; }
-      else if(en.operator==='mtn'){ mtnUnits += (en.units || 0); mtnCost += en.cost; }
-      else if(en.operator==='moghrabi'){ mogCount++; mogCost += en.cost; }
+      if(en.operator==='syriatel'){
+        if(en.kind==='topup'){ syrTUnits += en.units; syrTCost += en.cost; }
+        else { syrLUnits += (en.units || 0); syrLCost += en.cost; syrLCount++; }
+      } else if(en.operator==='mtn'){
+        if(en.kind==='topup'){ mtnTUnits += en.units; mtnTCost += en.cost; }
+        else { mtnLUnits += (en.units || 0); mtnLCost += en.cost; mtnLCount++; }
+      } else if(en.operator==='moghrabi'){
+        mogCount++; mogCost += en.cost;
+      }
     });
-    const totalSpent = syrCost + mtnCost + mogCost;
+
+    const totalSpent = syrTCost + syrLCost + mtnTCost + mtnLCost + mogCost;
     const profit = cash - totalSpent;
-    const profitText = profit >= 0 ? `مربح زائد: ${fmt(profit)} ل.ت` : `عجز: ${fmt(Math.abs(profit))} ل.ت`;
+    const profitText = profit >= 0 ? `مربح زائد: ${fmt(profit)} ل.ت` : `عجز مالي: ${fmt(Math.abs(profit))} ل.ت`;
 
     const reportHtml = `
-      <div style="padding:50px; background:#fff;">
+      <div style="padding:60px; background:#fff;">
         <div class="audit-header">
-          <h1>جرد مالي دقيق</h1>
-          <p>تاريخ الجرد: ${new Date().toLocaleString('en-GB')}</p>
+          <h1>جرد مالي يومي مفصل</h1>
+          <p>تاريخ الجرد: ${new Date().toLocaleString('en-GB')} | سعر الـ 10 وحدات: ${fmt(state.rate)} ل.ت</p>
         </div>
 
-        <div class="audit-card" data-title="حسابات سيريتيل (رصيد + خطوط)">
-          <div class="audit-row"><span>إجمالي الوحدات:</span> <span>${fmt(syrUnits)} وحدة</span></div>
-          <div class="audit-row"><span>سعر الـ 10 وحدات:</span> <span>${fmt(state.rate)} ل.ت</span></div>
-          <div class="audit-row formula"><span>المعادلة: (${fmt(syrUnits)} ÷ 10) × ${fmt(state.rate)}</span></div>
-          <div class="audit-row main"><span>إجمالي المبلغ المستحق:</span> <span>${fmt(syrCost)} ل.ت</span></div>
+        <!-- SYRIATEL SECTION -->
+        <div class="audit-card" data-title="حسابات سيريتيل (Syriatel)">
+          <div class="audit-section-title">1. الرصيد المضاف (Topup)</div>
+          <div class="audit-row"><span>إجمالي الوحدات:</span> <span>${fmt(syrTUnits)} وحدة</span></div>
+          <div class="audit-row formula"><span>الحساب: (${fmt(syrTUnits)} ÷ 10) × ${fmt(state.rate)}</span> <span>= ${fmt(syrTCost)} ل.ت</span></div>
+          
+          <div class="audit-section-title">2. تفعيل الخطوط (Lines)</div>
+          <div class="audit-row"><span>عدد الخطوط المباعة:</span> <span>${syrLCount} خط</span></div>
+          <div class="audit-row"><span>إجمالي وحدات التفعيل:</span> <span>${fmt(syrLUnits)} وحدة</span></div>
+          <div class="audit-row formula"><span>الحساب: (${fmt(syrLUnits)} ÷ 10) × ${fmt(state.rate)}</span> <span>= ${fmt(syrLCost)} ل.ت</span></div>
+          
+          <div class="audit-row main"><span>إجمالي سيريتيل النهائي:</span> <span>${fmt(syrTCost + syrLCost)} ل.ت</span></div>
         </div>
 
-        <div class="audit-card" data-title="حسابات MTN (رصيد + خطوط)">
-          <div class="audit-row"><span>إجمالي الوحدات:</span> <span>${fmt(mtnUnits)} وحدة</span></div>
-          <div class="audit-row"><span>سعر الـ 10 وحدات:</span> <span>${fmt(state.rate)} ل.ت</span></div>
-          <div class="audit-row formula"><span>المعادلة: (${fmt(mtnUnits)} ÷ 10) × ${fmt(state.rate)}</span></div>
-          <div class="audit-row main"><span>إجمالي المبلغ المستحق:</span> <span>${fmt(mtnCost)} ل.ت</span></div>
+        <!-- MTN SECTION -->
+        <div class="audit-card" data-title="حسابات MTN">
+          <div class="audit-section-title">1. الرصيد المضاف (Topup)</div>
+          <div class="audit-row"><span>إجمالي الوحدات:</span> <span>${fmt(mtnTUnits)} وحدة</span></div>
+          <div class="audit-row formula"><span>الحساب: (${fmt(mtnTUnits)} ÷ 10) × ${fmt(state.rate)}</span> <span>= ${fmt(mtnTCost)} ل.ت</span></div>
+          
+          <div class="audit-section-title">2. تفعيل الخطوط (Lines)</div>
+          <div class="audit-row"><span>عدد الخطوط المباعة:</span> <span>${mtnLCount} خط</span></div>
+          <div class="audit-row"><span>إجمالي وحدات التفعيل:</span> <span>${fmt(mtnLUnits)} وحدة</span></div>
+          <div class="audit-row formula"><span>الحساب: (${fmt(mtnLUnits)} ÷ 10) × ${fmt(state.rate)}</span> <span>= ${fmt(mtnLCost)} ل.ت</span></div>
+          
+          <div class="audit-row main"><span>إجمالي MTN النهائي:</span> <span>${fmt(mtnTCost + mtnLCost)} ل.ت</span></div>
         </div>
 
-        <div class="audit-card" data-title="الخطوط المغربية (مبيعات مباشرة)">
+        <!-- MOGHRABI SECTION -->
+        <div class="audit-card" data-title="الخطوط المغربية (Moghrabi)">
           <div class="audit-row"><span>عدد الخطوط المباعة:</span> <span>${mogCount} خط</span></div>
-          <div class="audit-row main"><span>إجمالي المبالغ:</span> <span>${fmt(mogCost)} ل.ت</span></div>
+          <div class="audit-row main"><span>إجمالي مبالغ الخطوط:</span> <span>${fmt(mogCost)} ل.ت</span></div>
         </div>
 
+        <!-- FINAL SUMMARY -->
         <div class="audit-total-box">
           <div class="audit-row"><span>إجمالي الكاش الموجود معك:</span> <span>${fmt(cash)} ل.ت</span></div>
-          <div class="audit-row"><span>إجمالي كافة المصاريف:</span> <span>${fmt(totalSpent)} ل.ت</span></div>
+          <div class="audit-row"><span>إجمالي كافة المصاريف المسجلة:</span> <span>${fmt(totalSpent)} ل.ت</span></div>
           <div class="audit-profit">${profitText}</div>
         </div>
         
-        <p style="text-align:center; font-size:12pt; color:#888; margin-top:30px;">تم الجرد بواسطة نظام محاسب الرصيد والخطوط</p>
+        <p style="text-align:center; font-size:14pt; color:#000; margin-top:40px; font-weight:800;">تم الجرد بواسطة نظام محاسب الرصيد والخطوط</p>
       </div>`;
 
     const container = $('reportContainer');
@@ -280,7 +307,7 @@
     try {
       const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
       const link = document.createElement('a');
-      link.download = `جرد_مالي_${new Date().toISOString().split('T')[0]}.png`;
+      link.download = `جرد_مالي_مفصل_${new Date().toISOString().split('T')[0]}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (e) { alert('فشل توليد الجرد'); } 
